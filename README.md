@@ -105,6 +105,13 @@ php artisan migrate
 php artisan schema:embed
 ```
 
+**Interactive Selection:** The command will display all available tables and let you select which ones to embed:
+
+- Enter numbers separated by comma: `1,3,5`
+- Use ranges: `1-5` or combine: `1,3,5-8`
+- Type `all` to select all tables
+- Press Enter to cancel
+
 This command will:
 
 - Discover all tables in your database
@@ -112,7 +119,29 @@ This command will:
 - Generate AI embeddings for semantic search
 - Store everything for lightning-fast queries
 
-**Note:** This may take 2-5 minutes depending on database size due to API rate limits.
+**Time:** ~1 second per table (API rate limits: 60 requests/minute)
+
+**Example:**
+
+```
+Found 20 tables in the database:
+  [1] users
+  [2] posts
+  [3] orders
+  ...
+
+Your selection: 1-3,5
+
+Selected tables:
+  ✓ users
+  ✓ posts
+  ✓ orders
+  ✓ products
+
+Embedding 4 table(s)...
+ 4/4 [============================] 100%
+✅ Schema embedding completed successfully!
+```
 
 ### Step 8 (Optional): Embed Documentation
 
@@ -357,6 +386,8 @@ Run this after migrations or schema changes:
 php artisan schema:embed
 ```
 
+**Tip:** You can selectively re-embed only the tables that changed by using the interactive selection.
+
 ### Update Documentation
 
 After updating docs:
@@ -377,7 +408,7 @@ php artisan docs:embed
 
 ### "Table X is not in allowed list"
 
-**Solution:** Schema not embedded. Run `php artisan schema:embed`
+**Solution:** Schema not embedded. Run `php artisan schema:embed` and select the tables you need to embed. You can use `all` to embed all tables or select specific ones.
 
 ### SQL Validation Errors
 

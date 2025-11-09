@@ -60,6 +60,7 @@ FLUSH PRIVILEGES;
 ```
 
 Then in `.env`:
+
 ```env
 DB_READONLY_USERNAME=readonly
 DB_READONLY_PASSWORD=secure_password
@@ -72,6 +73,7 @@ php artisan migrate
 ```
 
 This creates 3 tables:
+
 - `schema_embeddings` - Stores database schema vectors
 - `knowledge_chunks` - Stores documentation embeddings
 - `query_logs` - Tracks all bot queries
@@ -82,19 +84,61 @@ This creates 3 tables:
 php artisan schema:embed
 ```
 
+**Interactive Table Selection:**
+
+The command will display all available tables and let you choose which ones to embed:
+
+```
+Starting schema embedding process...
+Found 20 tables in the database:
+
+  [1] users
+  [2] posts
+  [3] comments
+  [4] categories
+  [5] products
+  ...
+
+Select tables to embed:
+  • Enter numbers separated by comma (e.g., 1,3,5)
+  • Enter "all" to select all tables
+  • Enter ranges with dash (e.g., 1-5 or 1,3,5-8)
+  • Press Enter with no input to cancel
+
+Your selection: 1-3,5
+
+Selected tables:
+  ✓ users
+  ✓ posts
+  ✓ comments
+  ✓ products
+
+Proceed with these tables? (yes/no) [yes]:
+```
+
+**Selection Options:**
+
+- **Individual tables:** `1,3,5` (selects tables 1, 3, and 5)
+- **Ranges:** `1-5` (selects tables 1 through 5)
+- **Combined:** `1,3,5-8,10` (combines individual and ranges)
+- **All tables:** Type `all` to select all tables
+- **Cancel:** Press Enter with no input
+
 **What this does:**
-- Scans all tables in your database
+
+- Scans selected tables in your database
 - Extracts columns, types, relationships
 - Generates AI embeddings (768-dimensional vectors)
 - Stores for semantic search
 
-**Time:** 2-5 minutes (depends on DB size, API rate limits apply)
+**Time:** ~1 second per table (API rate limits: 60 requests/minute)
 
 **Example Output:**
+
 ```
-Starting schema embedding process...
-Found 25 tables to embed
- 25/25 [============================] 100%
+Embedding 3 table(s)...
+ 3/3 [============================] 100%
+
 ✅ Schema embedding completed successfully!
 ```
 
@@ -134,6 +178,7 @@ curl -X POST http://localhost:8000/api/bot/ask \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "success": true,
@@ -158,18 +203,22 @@ The bot is now ready to answer questions about your database!
 Thanks to Laravel's package auto-discovery, these are automatically available:
 
 ### ✅ Commands
-- `php artisan schema:embed` - Embed database schema
+
+- `php artisan schema:embed` - Interactively select and embed database tables
 - `php artisan docs:embed` - Embed documentation
 
 ### ✅ Routes
+
 - `POST /api/bot/ask` - Ask questions
 - `GET /api/bot/history` - Query history
 - `GET /api/bot/stats` - Statistics
 
 ### ✅ Middleware
+
 - `bot.rate-limit` - Rate limiting (10 req/min default)
 
 ### ✅ Services (Auto-Injected)
+
 - `Emon\LarabotAi\Services\HybridBotService`
 - `Emon\LarabotAi\Services\GeminiService`
 - `Emon\LarabotAi\Services\SqlGenerationService`
@@ -181,11 +230,13 @@ Thanks to Laravel's package auto-discovery, these are automatically available:
 ## Verify Installation
 
 ### Check Routes
+
 ```bash
 php artisan route:list | grep bot
 ```
 
 Expected output:
+
 ```
 POST     api/bot/ask       gemini-bot.ask
 GET      api/bot/history   gemini-bot.history
@@ -193,17 +244,20 @@ GET      api/bot/stats     gemini-bot.stats
 ```
 
 ### Check Commands
+
 ```bash
 php artisan list | grep embed
 ```
 
 Expected output:
+
 ```
-schema:embed   Embed database schema with Gemini
+schema:embed   Interactively select and embed database tables with Gemini for AI-powered querying
 docs:embed     Embed documentation with Gemini
 ```
 
 ### Check Config
+
 ```bash
 php artisan config:show gemini
 ```
@@ -217,6 +271,7 @@ Should show your Gemini configuration.
 ### Issue: Routes not found
 
 **Solution:** Clear cache
+
 ```bash
 php artisan route:clear
 php artisan cache:clear
@@ -225,6 +280,7 @@ php artisan cache:clear
 ### Issue: Commands not found
 
 **Solution:** Run
+
 ```bash
 composer dump-autoload
 php artisan clear-compiled
@@ -237,6 +293,7 @@ php artisan clear-compiled
 ### Issue: 429 Rate Limit
 
 **Solution:** Free tier has limits:
+
 - 60 requests/minute for embeddings
 - 15 requests/minute for text generation
 
@@ -247,9 +304,16 @@ Wait or upgrade to paid tier.
 **Symptoms:** "No relevant tables found" errors
 
 **Solution:**
+
 ```bash
 php artisan schema:embed
 ```
+
+The command now has an interactive interface where you can:
+
+- Select specific tables to embed (recommended for large databases)
+- Use `all` to embed all tables at once
+- Re-run anytime to update or add more tables
 
 ---
 
@@ -303,4 +367,3 @@ php artisan migrate:rollback --path=database/migrations/*_query_logs_table.php
 ---
 
 **Need help?** Open an issue on GitHub!
-

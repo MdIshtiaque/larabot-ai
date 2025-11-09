@@ -150,7 +150,7 @@ GET      api/bot/stats     gemini-bot.stats       › Emon\GeminiBot\Http\Contro
 ### Commands
 
 ```
-schema:embed   Embed database schema with Gemini for AI-powered querying
+schema:embed   Interactively select and embed database tables with Gemini for AI-powered querying
 docs:embed     Embed documentation with Gemini for RAG
 ```
 

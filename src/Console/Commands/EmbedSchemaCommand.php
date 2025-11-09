@@ -12,7 +12,7 @@ class EmbedSchemaCommand extends Command
 {
     protected $signature = 'schema:embed';
 
-    protected $description = 'Embed database schema with Gemini for AI-powered querying';
+    protected $description = 'Interactively select and embed database tables with Gemini for AI-powered querying';
 
     public function __construct(private GeminiService $geminiService)
     {
@@ -31,12 +31,25 @@ class EmbedSchemaCommand extends Command
             return self::FAILURE;
         }
 
-        $this->info("Found {$tables->count()} tables to embed");
+        // Show available tables
+        $this->info("Found {$tables->count()} tables in the database:");
+        $this->newLine();
 
-        $progressBar = $this->output->createProgressBar($tables->count());
+        $selectedTables = $this->selectTables($tables);
+
+        if (empty($selectedTables)) {
+            $this->warn('No tables selected. Aborting...');
+
+            return self::FAILURE;
+        }
+
+        $this->newLine();
+        $this->info("Embedding " . count($selectedTables) . " table(s)...");
+
+        $progressBar = $this->output->createProgressBar(count($selectedTables));
         $progressBar->start();
 
-        foreach ($tables as $tableName) {
+        foreach ($selectedTables as $tableName) {
             $this->embedTable($tableName);
             $progressBar->advance();
 
@@ -49,6 +62,101 @@ class EmbedSchemaCommand extends Command
         $this->info('✅ Schema embedding completed successfully!');
 
         return self::SUCCESS;
+    }
+
+    private function selectTables(\Illuminate\Support\Collection $tables): array
+    {
+        // Display tables with checkboxes
+        $tableArray = $tables->values()->toArray();
+        $choices = [];
+
+        foreach ($tableArray as $index => $table) {
+            $choices[] = sprintf('[%d] %s', $index + 1, $table);
+        }
+
+        // Display all tables
+        foreach ($choices as $choice) {
+            $this->line("  {$choice}");
+        }
+
+        $this->newLine();
+        $this->comment('Select tables to embed:');
+        $this->comment('  • Enter numbers separated by comma (e.g., 1,3,5)');
+        $this->comment('  • Enter "all" to select all tables');
+        $this->comment('  • Enter ranges with dash (e.g., 1-5 or 1,3,5-8)');
+        $this->comment('  • Press Enter with no input to cancel');
+        $this->newLine();
+
+        $selection = $this->ask('Your selection');
+
+        // Handle empty selection
+        if (empty($selection)) {
+            return [];
+        }
+
+        // Handle "all" selection
+        if (strtolower(trim($selection)) === 'all') {
+            return $tableArray;
+        }
+
+        // Parse selection
+        $selectedIndices = $this->parseSelection($selection, count($tableArray));
+
+        if (empty($selectedIndices)) {
+            $this->error('Invalid selection. Please try again.');
+
+            return $this->selectTables($tables);
+        }
+
+        // Get selected tables
+        $selectedTables = [];
+        foreach ($selectedIndices as $index) {
+            if (isset($tableArray[$index - 1])) {
+                $selectedTables[] = $tableArray[$index - 1];
+            }
+        }
+
+        // Confirm selection
+        $this->newLine();
+        $this->info('Selected tables:');
+        foreach ($selectedTables as $table) {
+            $this->line("  ✓ {$table}");
+        }
+        $this->newLine();
+
+        if (! $this->confirm('Proceed with these tables?', true)) {
+            return $this->selectTables($tables);
+        }
+
+        return $selectedTables;
+    }
+
+    private function parseSelection(string $selection, int $maxIndex): array
+    {
+        $indices = [];
+        $parts = explode(',', $selection);
+
+        foreach ($parts as $part) {
+            $part = trim($part);
+
+            // Handle ranges (e.g., "1-5")
+            if (str_contains($part, '-')) {
+                [$start, $end] = array_map('intval', explode('-', $part, 2));
+
+                if ($start > 0 && $end <= $maxIndex && $start <= $end) {
+                    for ($i = $start; $i <= $end; $i++) {
+                        $indices[] = $i;
+                    }
+                }
+            } elseif (is_numeric($part)) {
+                $index = (int) $part;
+                if ($index > 0 && $index <= $maxIndex) {
+                    $indices[] = $index;
+                }
+            }
+        }
+
+        return array_unique($indices);
     }
 
     private function getDatabaseTables(): \Illuminate\Support\Collection

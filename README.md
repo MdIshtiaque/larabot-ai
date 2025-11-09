@@ -87,6 +87,7 @@ FLUSH PRIVILEGES;
 ```
 
 Then add to `.env`:
+
 ```env
 DB_READONLY_USERNAME=readonly
 DB_READONLY_PASSWORD=password
@@ -105,6 +106,7 @@ php artisan schema:embed
 ```
 
 This command will:
+
 - Discover all tables in your database
 - Extract column information and relationships
 - Generate AI embeddings for semantic search
@@ -159,6 +161,7 @@ curl -X POST http://localhost:8000/api/bot/ask \
 ### Example Queries
 
 **SQL Queries:**
+
 ```
 - "How many orders were placed today?"
 - "Show me the top 10 products by sales"
@@ -168,6 +171,7 @@ curl -X POST http://localhost:8000/api/bot/ask \
 ```
 
 **Documentation Queries:**
+
 ```
 - "How do I set up authentication?"
 - "Explain the payment flow"
@@ -244,6 +248,7 @@ curl -X POST http://localhost:8000/api/bot/ask \
 ```
 
 **Common Auth Guards:**
+
 - `sanctum` - Laravel Sanctum (SPA/mobile apps)
 - `api` - Token-based authentication
 - `web` - Session-based authentication
@@ -401,6 +406,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## 🙏 Credits
 
 Built with:
+
 - [Laravel](https://laravel.com/)
 - [Google Gemini AI](https://deepmind.google/technologies/gemini/)
 - [GuzzleHTTP](https://docs.guzzlephp.org/)
@@ -417,4 +423,3 @@ If this package helped you, please star it on GitHub! ⭐
 ---
 
 **Made with ❤️ for the Laravel community**
-

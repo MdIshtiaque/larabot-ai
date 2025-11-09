@@ -1,0 +1,59 @@
+{
+    "name": "emon/larabot-ai",
+    "description": "Conversational AI database assistant for Laravel with Schema-RAG and NL→SQL capabilities",
+    "keywords": [
+        "laravel",
+        "ai",
+        "bot",
+        "assistant",
+        "gemini",
+        "sql",
+        "rag",
+        "natural-language",
+        "database",
+        "chatbot",
+        "query-builder",
+        "conversational-ai"
+    ],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Emon",
+            "email": "your.email@example.com"
+        }
+    ],
+    "require": {
+        "php": "^8.1|^8.2|^8.3",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "illuminate/database": "^10.0|^11.0|^12.0",
+        "illuminate/console": "^10.0|^11.0|^12.0",
+        "illuminate/http": "^10.0|^11.0|^12.0",
+        "guzzlehttp/guzzle": "^7.5",
+        "ramsey/uuid": "^4.7"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^8.0|^9.0",
+        "phpunit/phpunit": "^10.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Emon\\LarabotAi\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Emon\\LarabotAi\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Emon\\LarabotAi\\LarabotAiServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
+

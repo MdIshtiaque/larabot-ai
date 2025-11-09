@@ -185,6 +185,15 @@ class EmbedSchemaCommand extends Command
 
     private function embedTable(string $tableName): void
     {
+        // Get table comment
+        $tableInfo = DB::select("
+            SELECT TABLE_COMMENT 
+            FROM INFORMATION_SCHEMA.TABLES 
+            WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?
+        ", [config('database.connections.mysql.database'), $tableName]);
+        
+        $tableComment = $tableInfo[0]->TABLE_COMMENT ?? '';
+        
         // Get column information
         $columns = collect(DB::select("SHOW FULL COLUMNS FROM `{$tableName}`"));
 
@@ -204,12 +213,19 @@ class EmbedSchemaCommand extends Command
 
         // Build column list for summary
         $columnList = $columns->map(function ($col) {
-            return sprintf(
+            $info = sprintf(
                 '%s (%s)%s',
                 $col->Field,
                 $col->Type,
                 $col->Null === 'NO' ? ' NOT NULL' : ''
             );
+            
+            // Add column comment if available
+            if (! empty($col->Comment)) {
+                $info .= " - {$col->Comment}";
+            }
+            
+            return $info;
         })->implode(', ');
 
         // Build relationships summary
@@ -223,8 +239,18 @@ class EmbedSchemaCommand extends Command
 
         // Create comprehensive summary for embedding
         $summary = "Table: {$tableName}\n";
+        
+        // Add table comment if available
+        if (! empty($tableComment)) {
+            $summary .= "Description: {$tableComment}\n";
+        }
+        
         $summary .= "Columns: {$columnList}\n";
-        $summary .= "Purpose: Stores {$tableName} related data.";
+        
+        // Add generic purpose only if no table comment exists
+        if (empty($tableComment)) {
+            $summary .= "Purpose: Stores {$tableName} related data.";
+        }
 
         if (! empty($relationships)) {
             $relationshipsText = collect($relationships)

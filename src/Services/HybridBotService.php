@@ -47,19 +47,106 @@ class HybridBotService
     private function detectIntent(string $query): string
     {
         $sqlKeywords = [
-            'how many', 'count', 'total', 'sum', 'average', 'list all', 'show me',
-            'who are', 'which', 'find', 'search for', 'get all', 'last', 'recent',
-            'top', 'highest', 'lowest', 'between', 'calculate',
+            // Counting & Aggregation
+            'how many', 'count', 'total', 'sum', 'average', 'mean', 'median', 'min', 'minimum',
+            'max', 'maximum', 'aggregate', 'statistics', 'stat',
+            
+            // Listing & Display
+            'list all', 'show me', 'display', 'get all', 'fetch', 'retrieve', 'select',
+            'give me', 'bring up', 'pull up',
+            
+            // Filtering & Search
+            'who are', 'which', 'find', 'search for', 'filter', 'where', 'lookup',
+            'match', 'contains', 'like',
+            
+            // Ordering & Ranking
+            'last', 'recent', 'latest', 'newest', 'oldest', 'first', 'top', 'bottom',
+            'highest', 'lowest', 'best', 'worst', 'order by', 'sort by', 'rank',
+            
+            // Comparison & Range
+            'between', 'greater than', 'less than', 'more than', 'fewer than',
+            'above', 'below', 'over', 'under', 'at least', 'at most',
+            
+            // Calculation & Math
+            'calculate', 'compute', 'divide', 'multiply', 'percentage', 'percent',
+            'ratio', 'proportion', 'growth', 'increase', 'decrease',
+            
+            // Time-based
+            'today', 'yesterday', 'this week', 'this month', 'this year', 'last week',
+            'last month', 'last year', 'daily', 'weekly', 'monthly', 'yearly',
+            
+            // Grouping & Distribution
+            'group by', 'grouped by', 'per', 'by category', 'breakdown', 'distribution',
+            'each', 'every', 'for each',
+            
+            // Existence & Boolean
+            'exists', 'does', 'has', 'have', 'is there', 'are there', 'any',
+            'all', 'none', 'without',
         ];
 
         $ragKeywords = [
-            'what is', 'what are', 'explain', 'describe', 'how to', 'can i',
-            'policy', 'rule', 'guideline', 'definition', 'meaning', 'why',
-            'when should', 'difference between',
+            // Question Starters
+            'what is', 'what are', 'what does', 'tell me', 'tell me about',
+            'help me understand', 'i need to know',
+            
+            // Explanation & Description
+            'explain', 'describe', 'clarify', 'elaborate', 'detail', 'details',
+            'illustrate', 'demonstrate',
+            
+            // How-to & Procedures
+            'how to', 'how do i', 'how can i', 'how should i', 'steps to',
+            'way to', 'method to', 'process', 'procedure', 'workflow',
+            
+            // Permission & Capability
+            'can i', 'could i', 'may i', 'am i allowed', 'is it possible',
+            'should i', 'would it be',
+            
+            // Policy & Rules
+            'policy', 'policies', 'rule', 'rules', 'guideline', 'guidelines',
+            'regulation', 'requirement', 'requirements', 'standard', 'standards',
+            
+            // Definition & Meaning
+            'definition', 'meaning', 'means', 'refers to', 'stands for',
+            'defined as', 'concept', 'idea', 'term',
+            
+            // Reasoning & Understanding
+            'why', 'why is', 'why does', 'reason', 'because', 'purpose',
+            'benefit', 'advantage', 'rationale',
+            
+            // Timing & Conditions
+            'when', 'when should', 'when to', 'when can', 'when is',
+            'under what', 'condition', 'prerequisite', 'before',
+            
+            // Comparison & Differences
+            'difference between', 'compare', 'comparison', 'versus', 'vs',
+            'distinguish', 'differentiate', 'contrast', 'similar', 'same as',
+            
+            // Documentation & Guidance
+            'documentation', 'document', 'guide', 'tutorial', 'instruction',
+            'instructions', 'manual', 'reference', 'best practice', 'example',
+            'examples', 'use case', 'scenario',
         ];
 
         $hybridKeywords = [
-            'and what', 'also explain', 'plus policy', 'with details about',
+            // Conjunctive Phrases
+            'and what', 'and also', 'also explain', 'also tell', 'also show',
+            'and explain', 'and describe', 'and why',
+            
+            // Addition Phrases
+            'plus policy', 'plus rule', 'plus guideline', 'plus documentation',
+            'along with', 'together with', 'combined with', 'as well as',
+            
+            // Detail Phrases
+            'with details about', 'with explanation', 'with context',
+            'including', 'including why', 'including how',
+            
+            // Context Phrases
+            'in context of', 'regarding', 'with respect to', 'in relation to',
+            'in terms of', 'concerning',
+            
+            // Sequential Phrases
+            'then explain', 'then tell', 'then describe', 'after that',
+            'followed by', 'and additionally',
         ];
 
         $queryLower = strtolower($query);

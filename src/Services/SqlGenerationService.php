@@ -71,6 +71,9 @@ Core Rules:
 6. Use LIMIT 100 if no specific limit is mentioned in the question
 7. Use meaningful table aliases (e.g., t1, t2 or first letter of table name)
 8. Follow MySQL syntax strictly with ONLY_FULL_GROUP_BY mode enabled
+9. NEVER include password, password_hash, or any sensitive authentication fields in SELECT statements
+10. Exclude columns containing 'password', 'secret', 'token', 'key' in their names from results
+
 
 Critical SQL Constraints:
 9. NEVER mix aggregate functions (COUNT, SUM, AVG, MAX, MIN) with non-aggregated columns unless using GROUP BY

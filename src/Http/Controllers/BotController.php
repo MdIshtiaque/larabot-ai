@@ -29,6 +29,9 @@ class BotController
                 'success' => $result['success'],
                 'data' => [
                     'answer' => $result['answer'] ?? null,
+                    'html' => $result['html'] ?? null,
+                    'visualization_type' => $result['visualization_type'] ?? null,
+                    'insights' => $result['insights'] ?? [],
                     'intent' => $result['intent'],
                     'response_time_ms' => $result['response_time_ms'],
                     'sql' => $result['sql'] ?? null,

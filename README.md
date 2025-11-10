@@ -10,6 +10,7 @@ Conversational AI database assistant for Laravel that combines **Schema-RAG** an
 ## 🚀 Features
 
 - 🤖 **Natural Language to SQL** - Ask questions about your database in plain English
+- 🎨 **HTML Visualizations** - AI generates beautiful charts, tables, and cards automatically
 - 📚 **Documentation RAG** - Retrieval Augmented Generation from your project docs
 - 🔍 **Semantic Schema Search** - AI embeddings for intelligent table discovery
 - 🔐 **Secure by Design** - Read-only DB connection + SQL injection prevention
@@ -178,14 +179,52 @@ curl -X POST http://localhost:8000/api/bot/ask \
   "success": true,
   "data": {
     "answer": "There are 150 active users in the system.",
+    "html": "<div style='...'>Beautiful HTML card</div>",
+    "visualization_type": "stats_card",
+    "insights": ["Active user count has grown by 10% this month"],
     "intent": "sql",
     "response_time_ms": 1250,
-    "sql": "SELECT COUNT(*) FROM users WHERE is_active = 1;",
-    "sources": null
+    "sql": "SELECT COUNT(*) FROM users WHERE is_active = 1;"
   },
   "error": null
 }
 ```
+
+### 🎨 HTML Visualizations (New in v1.2.0)
+
+The bot now intelligently generates **beautiful HTML/CSS visualizations** along with natural language answers!
+
+**Key Features:**
+- ✅ Natural language answer (always included)
+- ✅ Beautiful HTML visualization (when helpful)
+- ✅ Self-contained (no external dependencies)
+- ✅ Multiple types: stat cards, tables, bar charts, timelines, comparisons, and more
+
+**Example:**
+
+```javascript
+// Render the response
+document.getElementById('answer').textContent = result.data.answer;
+
+if (result.data.html) {
+  document.getElementById('visualization').innerHTML = result.data.html;
+}
+```
+
+**Visualization Types:**
+- `stats_card` - Single values (counts, sums)
+- `table` - Tabular data (5-20 rows)
+- `bar_chart` - Categories with numbers
+- `list` - Short lists (2-5 items)
+- `comparison` - Side-by-side comparisons
+- `metric_grid` - Dashboard-style metrics
+- `timeline` - Date-ordered events
+- `text` - Plain text (no visualization)
+
+**Learn More:**
+- 📖 [HTML Visualization Feature Guide](HTML_VISUALIZATION_FEATURE.md)
+- 📝 [Real Examples](HTML_VISUALIZATION_EXAMPLES.md)
+- 🚀 [What's New in v1.2.0](WHATS_NEW_HTML_VISUALIZATIONS.md)
 
 ### Example Queries
 
@@ -419,7 +458,9 @@ php artisan docs:embed
 - [Installation Guide](INSTALLATION_GUIDE.md) - Step-by-step setup
 - [Authentication Guide](AUTHENTICATION.md) - Secure your bot routes
 - [Package Summary](PACKAGE_SUMMARY.md) - Technical architecture
-- [API Reference](docs/API.md) - Coming soon
+- [HTML Visualizations](HTML_VISUALIZATION_FEATURE.md) - Complete guide to visualizations (v1.2.0+)
+- [Visualization Examples](HTML_VISUALIZATION_EXAMPLES.md) - Real-world examples
+- [What's New in v1.2.0](WHATS_NEW_HTML_VISUALIZATIONS.md) - Latest features
 
 ## 🤝 Contributing
 

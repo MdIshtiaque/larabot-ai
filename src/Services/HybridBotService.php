@@ -196,6 +196,7 @@ class HybridBotService
                 'success' => false,
                 'error' => 'Could not generate SQL for this query',
                 'answer' => null,
+                'html' => null,
             ];
         }
 
@@ -211,6 +212,7 @@ class HybridBotService
                 'error' => 'Generated SQL failed validation: '.implode(', ', $validation['errors']),
                 'sql' => $generated['sql'],
                 'answer' => null,
+                'html' => null,
             ];
         }
 
@@ -218,14 +220,16 @@ class HybridBotService
         try {
             $data = DB::connection('mysql_readonly')->select($validation['sql']);
 
-            // Format result as natural language
-            $answer = $this->formatSqlResult($query, $data);
+            // Format result with NL + HTML visualization
+            $formatted = $this->formatSqlResult($query, $data);
 
             return [
                 'success' => true,
                 'sql' => $validation['sql'],
-                'data' => $data,
-                'answer' => $answer,
+                'answer' => $formatted['answer'],
+                'html' => $formatted['html'],
+                'visualization_type' => $formatted['visualization_type'],
+                'insights' => $formatted['insights'] ?? [],
                 'tables_used' => $generated['tables_used'],
             ];
         } catch (\Exception $e) {
@@ -239,6 +243,7 @@ class HybridBotService
                 'error' => 'Failed to execute query: '.$e->getMessage(),
                 'sql' => $validation['sql'],
                 'answer' => null,
+                'html' => null,
             ];
         }
     }
@@ -293,28 +298,202 @@ class HybridBotService
     }
 
     /**
-     * Format SQL result as natural language
+     * Format SQL result with NL answer and HTML visualization
      */
-    private function formatSqlResult(string $query, array $data): string
+    private function formatSqlResult(string $query, array $data): array
     {
         if (empty($data)) {
-            return 'No results found for your query.';
+            return [
+                'answer' => 'No results found for your query.',
+                'html' => null,
+                'visualization_type' => 'text',
+            ];
         }
 
-        $dataJson = json_encode(array_slice($data, 0, 10)); // Limit to 10 rows for context
+        $rowCount = count($data);
+        $dataStructure = $this->analyzeDataStructure($data);
+        $dataSample = json_encode(array_slice($data, 0, 50)); // Increased sample size
 
         $prompt = <<<PROMPT
-Convert the following SQL query result into a natural language answer.
+You are an intelligent data visualization assistant. Analyze the query result and provide:
+1. A MANDATORY natural language answer (ALWAYS required)
+2. Determine if HTML visualization would be helpful
+3. If yes, generate complete HTML with inline CSS
 
 User Question: "{$query}"
 
-Data (JSON):
-{$dataJson}
+Data Info:
+- Total Rows: {$rowCount}
+- Columns: {$dataStructure}
 
-Provide a clear, concise answer based on this data. If there are multiple rows, summarize them appropriately.
+Data Sample (JSON):
+{$dataSample}
+
+RESPOND WITH VALID JSON ONLY:
+{
+  "answer": "MANDATORY: Natural language explanation of results",
+  "needs_visualization": true/false,
+  "visualization_type": "stats_card|table|bar_chart|line_chart|pie_chart|list|comparison|timeline|metric_grid|none",
+  "html": "Complete HTML with inline CSS (if needs_visualization is true)",
+  "insights": ["Key finding 1", "Key finding 2"],
+  "reasoning": "Why this visualization type was chosen"
+}
+
+HTML Generation Rules:
+1. Use modern, clean design with inline CSS
+2. Make it responsive with proper spacing
+3. Use beautiful colors (gradients, shadows)
+4. Include icons or emojis where appropriate
+5. Ensure data is clearly labeled
+6. Use card-based layouts
+7. Add subtle animations
+8. Make numbers/stats prominent
+9. HTML should be self-contained (no external dependencies)
+
+Visualization Type Guidelines:
+- SINGLE VALUE (count, sum, avg): "stats_card" → Big number card with icon
+- 2-5 ROWS: "list" → Styled list with icons/badges
+- 5-20 ROWS (tabular): "table" → Beautiful HTML table
+- CATEGORIES + NUMBERS: "bar_chart" → CSS-based horizontal bars
+- TIME SERIES: "line_chart" → CSS timeline or line representation
+- PERCENTAGES/PARTS: "pie_chart" → CSS donut or percentage bars
+- MULTIPLE METRICS: "metric_grid" → Grid of stat cards
+- COMPARISON (2-3 items): "comparison" → Side-by-side cards
+- DATE-ORDERED EVENTS: "timeline" → Vertical timeline
+
+CSS Style Guidelines:
+- Background: Use subtle gradients (#f8fafc to #f1f5f9)
+- Primary color: #3b82f6 (blue)
+- Success: #10b981 (green)
+- Warning: #f59e0b (amber)
+- Danger: #ef4444 (red)
+- Text: #1e293b (dark)
+- Border radius: 12px for cards
+- Box shadow: 0 1px 3px rgba(0,0,0,0.1)
+- Font: system-ui, -apple-system, sans-serif
+
+Example Stats Card HTML:
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 24px; color: white; box-shadow: 0 8px 16px rgba(0,0,0,0.1);">
+  <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">Total Users</div>
+  <div style="font-size: 48px; font-weight: bold; margin-bottom: 4px;">1,234</div>
+  <div style="font-size: 12px; opacity: 0.8;">↑ 12% from last month</div>
+</div>
+
+IMPORTANT:
+- ALWAYS provide the "answer" field (natural language)
+- Only generate HTML if it adds value
+- HTML must be complete and ready to render
+- Respond with ONLY valid JSON
 PROMPT;
 
-        return $this->geminiService->generateText($prompt, ['temperature' => 0.3]) ?? json_encode($data);
+        $response = $this->geminiService->generateText($prompt, [
+            'temperature' => 0.4,
+            'maxOutputTokens' => 4096,
+        ]);
+
+        return $this->parseFormattedResponse($response, $data);
+    }
+
+    /**
+     * Analyze data structure
+     */
+    private function analyzeDataStructure(array $data): string
+    {
+        if (empty($data)) {
+            return 'No columns';
+        }
+
+        $firstRow = (array) $data[0];
+        $columns = [];
+
+        foreach ($firstRow as $column => $value) {
+            $type = $this->detectColumnType($data, $column);
+            $columns[] = "{$column} ({$type})";
+        }
+
+        return implode(', ', $columns);
+    }
+
+    /**
+     * Detect column data type
+     */
+    private function detectColumnType(array $data, string $column): string
+    {
+        $sampleValues = array_slice(
+            array_map(fn($row) => is_object($row) ? $row->$column : $row[$column], $data),
+            0,
+            10
+        );
+
+        $hasDate = false;
+        $hasNumeric = false;
+        $hasText = false;
+
+        foreach ($sampleValues as $value) {
+            if (is_null($value)) {
+                continue;
+            }
+
+            // Check if it's a date
+            if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}/', $value)) {
+                $hasDate = true;
+            }
+
+            // Check if it's numeric
+            if (is_numeric($value)) {
+                $hasNumeric = true;
+            } else {
+                $hasText = true;
+            }
+        }
+
+        if ($hasDate) {
+            return 'datetime';
+        }
+        if ($hasNumeric && ! $hasText) {
+            return 'numeric';
+        }
+        if ($hasText) {
+            return 'string';
+        }
+
+        return 'mixed';
+    }
+
+    /**
+     * Parse AI response
+     */
+    private function parseFormattedResponse(?string $response, array $originalData): array
+    {
+        if (! $response) {
+            return [
+                'answer' => 'Unable to process the results.',
+                'html' => null,
+                'visualization_type' => 'text',
+            ];
+        }
+
+        // Try to extract JSON from response
+        if (preg_match('/\{[\s\S]*\}/s', $response, $matches)) {
+            $decoded = json_decode($matches[0], true);
+
+            if ($decoded && isset($decoded['answer'])) {
+                return [
+                    'answer' => $decoded['answer'],
+                    'html' => ($decoded['needs_visualization'] ?? false) ? ($decoded['html'] ?? null) : null,
+                    'visualization_type' => $decoded['visualization_type'] ?? 'text',
+                    'insights' => $decoded['insights'] ?? [],
+                    'reasoning' => $decoded['reasoning'] ?? null,
+                ];
+            }
+        }
+
+        // Fallback: Just return the response as text
+        return [
+            'answer' => $response,
+            'html' => null,
+            'visualization_type' => 'text',
+        ];
     }
 
     /**

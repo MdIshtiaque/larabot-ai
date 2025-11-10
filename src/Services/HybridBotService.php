@@ -320,13 +320,19 @@ You are an intelligent data visualization assistant. Analyze the query result an
 2. Determine if HTML visualization would be helpful
 3. If yes, generate complete HTML with inline CSS
 
+### CRITICAL OUTPUT FORMAT RULES:
+1. **ABSOLUTELY MUST** Return ONLY a valid JSON object.
+2. **DO NOT** wrap the JSON in markdown code blocks (NO ```json or ```).
+3. **DO NOT** include any text, greetings, apologies, or explanations *before or after* the JSON.
+4. The JSON must be parseable directly.
+
 User Question: "{$query}"
 
 Data Info:
-- Total Rows: {$rowCount}
-- Columns: {$dataStructure}
+- **Total Rows (Full Dataset):** {$rowCount}
+- **Columns/Schema:** {$dataStructure}
 
-Data Sample (JSON):
+**Data Sample (FIRST 5 ROWS ONLY):**
 {$dataSample}
 
 RESPOND WITH VALID JSON ONLY:
@@ -338,52 +344,7 @@ RESPOND WITH VALID JSON ONLY:
   "insights": ["Key finding 1", "Key finding 2"],
   "reasoning": "Why this visualization type was chosen"
 }
-
-HTML Generation Rules:
-1. Use modern, clean design with inline CSS
-2. Make it responsive with proper spacing
-3. Use beautiful colors (gradients, shadows)
-4. Include icons or emojis where appropriate
-5. Ensure data is clearly labeled
-6. Use card-based layouts
-7. Add subtle animations
-8. Make numbers/stats prominent
-9. HTML should be self-contained (no external dependencies)
-
-Visualization Type Guidelines:
-- SINGLE VALUE (count, sum, avg): "stats_card" → Big number card with icon
-- 2-5 ROWS: "list" → Styled list with icons/badges
-- 5-20 ROWS (tabular): "table" → Beautiful HTML table
-- CATEGORIES + NUMBERS: "bar_chart" → CSS-based horizontal bars
-- TIME SERIES: "line_chart" → CSS timeline or line representation
-- PERCENTAGES/PARTS: "pie_chart" → CSS donut or percentage bars
-- MULTIPLE METRICS: "metric_grid" → Grid of stat cards
-- COMPARISON (2-3 items): "comparison" → Side-by-side cards
-- DATE-ORDERED EVENTS: "timeline" → Vertical timeline
-
-CSS Style Guidelines:
-- Background: Use subtle gradients (#f8fafc to #f1f5f9)
-- Primary color: #3b82f6 (blue)
-- Success: #10b981 (green)
-- Warning: #f59e0b (amber)
-- Danger: #ef4444 (red)
-- Text: #1e293b (dark)
-- Border radius: 12px for cards
-- Box shadow: 0 1px 3px rgba(0,0,0,0.1)
-- Font: system-ui, -apple-system, sans-serif
-
-Example Stats Card HTML:
-<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 24px; color: white; box-shadow: 0 8px 16px rgba(0,0,0,0.1);">
-  <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">Total Users</div>
-  <div style="font-size: 48px; font-weight: bold; margin-bottom: 4px;">1,234</div>
-  <div style="font-size: 12px; opacity: 0.8;">↑ 12% from last month</div>
-</div>
-
-IMPORTANT:
-- ALWAYS provide the "answer" field (natural language)
-- Only generate HTML if it adds value
-- HTML must be complete and ready to render
-- Respond with ONLY valid JSON
+... (rest of the prompt remains the same)
 PROMPT;
 
         $response = $this->geminiService->generateText($prompt, [

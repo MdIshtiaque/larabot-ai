@@ -1,6 +1,5 @@
 {
     "name": "emon/larabot-ai",
-    "version": "1.3.0",
     "description": "Conversational AI database assistant for Laravel with Schema-RAG and NL→SQL capabilities",
     "keywords": [
         "laravel",

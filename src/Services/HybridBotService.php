@@ -42,147 +42,134 @@ class HybridBotService
     }
 
     /**
-     * Detect query intent (sql, rag, or hybrid)
+     * Detect query intent using AI (sql, rag, or hybrid)
      */
     private function detectIntent(string $query): string
     {
-        $sqlKeywords = [
-            // Counting & Aggregation
-            'how many', 'count', 'total', 'sum', 'average', 'mean', 'median', 'min', 'minimum',
-            'max', 'maximum', 'aggregate', 'statistics', 'stat',
-            
-            // Listing & Display
-            'list all', 'show me', 'display', 'get all', 'fetch', 'retrieve', 'select',
-            'give me', 'bring up', 'pull up',
-            
-            // Filtering & Search
-            'who are', 'which', 'find', 'search for', 'filter', 'where', 'lookup',
-            'match', 'contains', 'like',
-            
-            // Ordering & Ranking
-            'last', 'recent', 'latest', 'newest', 'oldest', 'first', 'top', 'bottom',
-            'highest', 'lowest', 'best', 'worst', 'order by', 'sort by', 'rank',
-            
-            // Comparison & Range
-            'between', 'greater than', 'less than', 'more than', 'fewer than',
-            'above', 'below', 'over', 'under', 'at least', 'at most',
-            
-            // Calculation & Math
-            'calculate', 'compute', 'divide', 'multiply', 'percentage', 'percent',
-            'ratio', 'proportion', 'growth', 'increase', 'decrease',
-            
-            // Time-based
-            'today', 'yesterday', 'this week', 'this month', 'this year', 'last week',
-            'last month', 'last year', 'daily', 'weekly', 'monthly', 'yearly',
-            
-            // Grouping & Distribution
-            'group by', 'grouped by', 'per', 'by category', 'breakdown', 'distribution',
-            'each', 'every', 'for each',
-            
-            // Existence & Boolean
-            'exists', 'does', 'has', 'have', 'is there', 'are there', 'any',
-            'all', 'none', 'without',
-        ];
+        try {
+            // Get available database tables context
+            $availableTables = $this->getAvailableTablesContext();
 
-        $ragKeywords = [
-            // Question Starters
-            'what is', 'what are', 'what does', 'tell me', 'tell me about',
-            'help me understand', 'i need to know',
-            
-            // Explanation & Description
-            'explain', 'describe', 'clarify', 'elaborate', 'detail', 'details',
-            'illustrate', 'demonstrate',
-            
-            // How-to & Procedures
-            'how to', 'how do i', 'how can i', 'how should i', 'steps to',
-            'way to', 'method to', 'process', 'procedure', 'workflow',
-            
-            // Permission & Capability
-            'can i', 'could i', 'may i', 'am i allowed', 'is it possible',
-            'should i', 'would it be',
-            
-            // Policy & Rules
-            'policy', 'policies', 'rule', 'rules', 'guideline', 'guidelines',
-            'regulation', 'requirement', 'requirements', 'standard', 'standards',
-            
-            // Definition & Meaning
-            'definition', 'meaning', 'means', 'refers to', 'stands for',
-            'defined as', 'concept', 'idea', 'term',
-            
-            // Reasoning & Understanding
-            'why', 'why is', 'why does', 'reason', 'because', 'purpose',
-            'benefit', 'advantage', 'rationale',
-            
-            // Timing & Conditions
-            'when', 'when should', 'when to', 'when can', 'when is',
-            'under what', 'condition', 'prerequisite', 'before',
-            
-            // Comparison & Differences
-            'difference between', 'compare', 'comparison', 'versus', 'vs',
-            'distinguish', 'differentiate', 'contrast', 'similar', 'same as',
-            
-            // Documentation & Guidance
-            'documentation', 'document', 'guide', 'tutorial', 'instruction',
-            'instructions', 'manual', 'reference', 'best practice', 'example',
-            'examples', 'use case', 'scenario',
-        ];
+            // Get available knowledge base topics
+            $knowledgeTopics = $this->getKnowledgeBaseContext();
 
-        $hybridKeywords = [
-            // Conjunctive Phrases
-            'and what', 'and also', 'also explain', 'also tell', 'also show',
-            'and explain', 'and describe', 'and why',
-            
-            // Addition Phrases
-            'plus policy', 'plus rule', 'plus guideline', 'plus documentation',
-            'along with', 'together with', 'combined with', 'as well as',
-            
-            // Detail Phrases
-            'with details about', 'with explanation', 'with context',
-            'including', 'including why', 'including how',
-            
-            // Context Phrases
-            'in context of', 'regarding', 'with respect to', 'in relation to',
-            'in terms of', 'concerning',
-            
-            // Sequential Phrases
-            'then explain', 'then tell', 'then describe', 'after that',
-            'followed by', 'and additionally',
-        ];
+            $prompt = <<<PROMPT
+You are an intelligent query router for a hybrid AI system. Analyze the user's query and determine the best intent.
 
-        $queryLower = strtolower($query);
+**Available Data Sources:**
 
-        // Check for hybrid indicators
-        foreach ($hybridKeywords as $keyword) {
-            if (str_contains($queryLower, $keyword)) {
-                return 'hybrid';
+1. **SQL Database (schema_embeddings):**
+   - Contains structured data tables for querying, filtering, counting, and analytics
+   - Available tables: {$availableTables}
+   - Use when: Query needs to fetch, count, filter, aggregate, or analyze structured data
+
+2. **Knowledge Base (knowledge_chunks):**
+   - Contains documentation, guides, policies, procedures, and conceptual information
+   - Available topics: {$knowledgeTopics}
+   - Use when: Query asks for explanations, definitions, how-to guides, or conceptual understanding
+
+3. **Hybrid:**
+   - Combines both database queries AND documentation
+   - Use when: Query needs both data analysis AND contextual explanation
+   - Example: "Show me top 10 users and explain our user verification policy"
+
+**User Query:** "{$query}"
+
+**CRITICAL RULES:**
+1. Return ONLY a single word: "sql" OR "rag" OR "hybrid"
+2. NO explanations, NO reasoning, NO additional text
+3. NO JSON, NO markdown, just the single intent word
+
+**Decision Logic:**
+- Choose "sql" if query needs to retrieve, count, filter, aggregate, or analyze database records
+- Choose "rag" if query needs explanations, definitions, procedures, policies, or conceptual knowledge
+- Choose "hybrid" if query explicitly or implicitly needs BOTH data AND explanation
+
+RESPOND WITH ONLY ONE WORD:
+PROMPT;
+
+            $response = $this->geminiService->generateText($prompt, [
+                'temperature' => 0.1,  // Very low temperature for consistent classification
+                'maxOutputTokens' => 10,  // We only need one word
+            ]);
+
+            $intent = strtolower(trim($response));
+
+            // Validate the response
+            if (in_array($intent, ['sql', 'rag', 'hybrid'])) {
+                return $intent;
             }
-        }
 
-        // Count matches for SQL vs RAG
-        $sqlScore = 0;
-        $ragScore = 0;
+            // Fallback: If AI returns invalid response, use RAG as safe default
+            Log::warning('Invalid intent detected from AI', [
+                'query' => $query,
+                'ai_response' => $response,
+            ]);
 
-        foreach ($sqlKeywords as $keyword) {
-            if (str_contains($queryLower, $keyword)) {
-                $sqlScore++;
-            }
-        }
+            return 'rag';
 
-        foreach ($ragKeywords as $keyword) {
-            if (str_contains($queryLower, $keyword)) {
-                $ragScore++;
-            }
-        }
+        } catch (\Exception $e) {
+            Log::error('Intent detection failed', [
+                'query' => $query,
+                'error' => $e->getMessage(),
+            ]);
 
-        // Return intent based on scores
-        if ($sqlScore > $ragScore) {
-            return 'sql';
-        } elseif ($ragScore > $sqlScore) {
+            // Fallback to RAG on error
             return 'rag';
         }
+    }
 
-        // Default: try RAG first for ambiguous queries
-        return 'rag';
+    /**
+     * Get available database tables context for intent detection
+     */
+    private function getAvailableTablesContext(): string
+    {
+        try {
+            // Get sample of table names from schema_embeddings
+            $tables = DB::table('schema_embeddings')
+                ->select('table_name', 'summary')
+                ->limit(20)
+                ->get();
+
+            if ($tables->isEmpty()) {
+                return 'No database tables indexed yet';
+            }
+
+            $tableList = $tables->map(fn ($t) => $t->table_name)->implode(', ');
+
+            return $tableList;
+        } catch (\Exception $e) {
+            return 'Database schema not available';
+        }
+    }
+
+    /**
+     * Get available knowledge base topics for intent detection
+     */
+    private function getKnowledgeBaseContext(): string
+    {
+        try {
+            // Get sample of unique source files from knowledge_chunks
+            $sources = DB::table('knowledge_chunks')
+                ->select('source_file', 'source_type')
+                ->distinct()
+                ->limit(15)
+                ->get();
+
+            if ($sources->isEmpty()) {
+                return 'No documentation indexed yet';
+            }
+
+            $topicsList = $sources->map(function ($s) {
+                $fileName = basename($s->source_file, '.md');
+
+                return str_replace(['-', '_'], ' ', $fileName);
+            })->implode(', ');
+
+            return $topicsList;
+        } catch (\Exception $e) {
+            return 'Knowledge base not available';
+        }
     }
 
     /**
@@ -260,6 +247,8 @@ class HybridBotService
                 'success' => false,
                 'error' => 'No relevant documentation found',
                 'answer' => null,
+                'html' => null,
+                'sources' => [],
             ];
         }
 
@@ -268,33 +257,205 @@ class HybridBotService
         return [
             'success' => true,
             'answer' => $answer,
+            'html' => null,
+            'visualization_type' => 'text',
             'sources' => array_column($chunks, 'source_file'),
+            'insights' => [],
         ];
     }
 
     /**
      * Handle hybrid queries (SQL + RAG)
+     * Returns a unified structure consistent with SQL and RAG handlers
      */
     private function handleHybridQuery(string $query): array
     {
-        $sqlResult = $this->handleSqlQuery($query);
-        $ragResult = $this->handleRagQuery($query);
+        // Decompose the hybrid query into SQL and RAG components
+        $decomposed = $this->decomposeHybridQuery($query);
+        if (! $decomposed['success']) {
+            // Fallback: use original query for both if decomposition fails
+            Log::warning('Failed to decompose hybrid query, using original for both', [
+                'query' => $query,
+            ]);
+            $sqlQuery = $query;
+            $ragQuery = $query;
+        } else {
+            $sqlQuery = $decomposed['sql_query'];
+            $ragQuery = $decomposed['rag_query'];
+        }
+
+        // Execute both queries with their specific sub-queries
+        $sqlResult = $this->handleSqlQuery($sqlQuery);
+        $ragResult = $this->handleRagQuery($ragQuery);
+
+        // Check if both failed
+        if (! $sqlResult['success'] && ! $ragResult['success']) {
+            return [
+                'success' => false,
+                'error' => 'Both SQL and RAG queries failed',
+                'answer' => null,
+                'html' => null,
+                'metadata' => [
+                    'type' => 'hybrid',
+                    'sql_error' => $sqlResult['error'] ?? null,
+                    'rag_error' => $ragResult['error'] ?? null,
+                ],
+            ];
+        }
 
         // Combine both results
         $combinedPrompt = $this->buildHybridPrompt(
             $query,
+            $sqlQuery,
+            $ragQuery,
             $sqlResult['answer'] ?? 'No data available',
             $ragResult['answer'] ?? 'No documentation available'
         );
-
         $finalAnswer = $this->geminiService->generateText($combinedPrompt);
 
+        // Build unified response structure (consistent with handleSqlQuery)
         return [
             'success' => true,
             'answer' => $finalAnswer,
-            'sql_result' => $sqlResult,
-            'rag_result' => $ragResult,
+
+            // SQL-related fields (from sqlResult if available)
+            'sql' => $sqlResult['sql'] ?? null,
+            'html' => $sqlResult['html'] ?? null,
+            'visualization_type' => $sqlResult['visualization_type'] ?? 'text',
+            'insights' => $this->mergeInsights($sqlResult, $ragResult),
+            'tables_used' => $sqlResult['tables_used'] ?? [],
+
+            // RAG-related fields (from ragResult if available)
+            'sources' => $ragResult['sources'] ?? [],
+
+            // Hybrid-specific metadata
+            'metadata' => [
+                'type' => 'hybrid',
+                'decomposed_queries' => [
+                    'sql_query' => $sqlQuery,
+                    'rag_query' => $ragQuery,
+                ],
+                'components' => [
+                    'sql' => [
+                        'success' => $sqlResult['success'],
+                        'answer' => $sqlResult['answer'] ?? null,
+                    ],
+                    'rag' => [
+                        'success' => $ragResult['success'],
+                        'answer' => $ragResult['answer'] ?? null,
+                    ],
+                ],
+            ],
         ];
+    }
+
+    /**
+     * Merge insights from SQL and RAG results
+     */
+    private function mergeInsights(array $sqlResult, array $ragResult): array
+    {
+        $insights = [];
+
+        // Add SQL insights if available
+        if (! empty($sqlResult['insights'])) {
+            $insights = array_merge($insights, $sqlResult['insights']);
+        }
+
+        // Add a note about documentation context if RAG succeeded
+        if ($ragResult['success'] && ! empty($ragResult['sources'])) {
+            $sourceCount = count($ragResult['sources']);
+            $insights[] = "Enhanced with context from {$sourceCount} documentation source(s)";
+        }
+
+        return $insights;
+    }
+
+    /**
+     * Decompose hybrid query into SQL and RAG components
+     */
+    private function decomposeHybridQuery(string $query): array
+    {
+        try {
+            $prompt = <<<PROMPT
+You are a query decomposition expert. The user has asked a question that requires BOTH:
+1. Database query (to fetch/analyze data)
+2. Documentation lookup (to explain concepts/policies/procedures)
+
+Your task: Split the original query into TWO separate, focused sub-queries.
+
+**Original Query:** "{$query}"
+
+**Instructions:**
+- Create a SQL-focused sub-query that asks for data retrieval, counting, filtering, or analysis
+- Create a RAG-focused sub-query that asks for explanations, definitions, policies, or procedures
+- Each sub-query should be a complete, standalone question
+- Remove conjunctions like "and", "also", "plus", etc.
+- Keep the intent clear and specific for each component
+
+**Output Format (MUST be valid JSON):**
+{
+  "sql_query": "The data-focused question here",
+  "rag_query": "The documentation-focused question here"
+}
+
+**Examples:**
+
+Input: "Show me the top 10 users and explain our user verification policy"
+Output:
+{
+  "sql_query": "Show me the top 10 users",
+  "rag_query": "Explain our user verification policy"
+}
+
+Input: "How many orders were placed this month and what is the refund policy?"
+Output:
+{
+  "sql_query": "How many orders were placed this month?",
+  "rag_query": "What is the refund policy?"
+}
+
+Input: "List recent transactions with details about payment processing guidelines"
+Output:
+{
+  "sql_query": "List recent transactions",
+  "rag_query": "What are the payment processing guidelines?"
+}
+
+NOW DECOMPOSE THE QUERY. RESPOND WITH ONLY VALID JSON:
+PROMPT;
+
+            $response = $this->geminiService->generateText($prompt, [
+                'temperature' => 0.2,
+                'maxOutputTokens' => 200,
+            ]);
+
+            // Extract JSON from response
+            if (preg_match('/\{[\s\S]*\}/s', $response, $matches)) {
+                $decoded = json_decode($matches[0], true);
+
+                if ($decoded && isset($decoded['sql_query']) && isset($decoded['rag_query'])) {
+                    return [
+                        'success' => true,
+                        'sql_query' => trim($decoded['sql_query']),
+                        'rag_query' => trim($decoded['rag_query']),
+                    ];
+                }
+            }
+
+            Log::warning('Failed to parse decomposed query JSON', [
+                'response' => $response,
+            ]);
+
+            return ['success' => false];
+
+        } catch (\Exception $e) {
+            Log::error('Hybrid query decomposition failed', [
+                'query' => $query,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['success' => false];
+        }
     }
 
     /**
@@ -381,7 +542,7 @@ PROMPT;
     private function detectColumnType(array $data, string $column): string
     {
         $sampleValues = array_slice(
-            array_map(fn($row) => is_object($row) ? $row->$column : $row[$column], $data),
+            array_map(fn ($row) => is_object($row) ? $row->$column : $row[$column], $data),
             0,
             10
         );
@@ -460,20 +621,34 @@ PROMPT;
     /**
      * Build hybrid prompt combining SQL and RAG results
      */
-    private function buildHybridPrompt(string $query, string $sqlAnswer, string $ragAnswer): string
-    {
+    private function buildHybridPrompt(
+        string $originalQuery,
+        string $sqlQuery,
+        string $ragQuery,
+        string $sqlAnswer,
+        string $ragAnswer
+    ): string {
         return <<<PROMPT
-Combine the following information to provide a comprehensive answer to the user's question.
+You are synthesizing information from two sources to answer a complex user question.
 
-User Question: "{$query}"
+**Original User Question:** "{$originalQuery}"
 
-Data Analysis Result:
-{$sqlAnswer}
+This question was intelligently decomposed into:
 
-Documentation/Policy Information:
-{$ragAnswer}
+1. **Data Query (SQL):** "{$sqlQuery}"
+   **Result:** {$sqlAnswer}
 
-Provide a unified, clear answer that incorporates both the data analysis and documentation information.
+2. **Knowledge Query (Documentation):** "{$ragQuery}"
+   **Result:** {$ragAnswer}
+
+**Your Task:**
+- Synthesize both results into ONE comprehensive, coherent answer
+- Ensure the answer directly addresses the original question
+- Integrate data findings with documentation context naturally
+- Use clear, professional language
+- If one component failed or has no data, focus on the successful component but mention what's missing
+
+Provide a unified, well-structured answer:
 PROMPT;
     }
 
@@ -502,4 +677,3 @@ PROMPT;
         ]);
     }
 }
-
